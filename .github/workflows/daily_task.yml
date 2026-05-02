@@ -30,5 +30,7 @@ jobs:
 
       - name: 运行推送脚本
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 确保脚本能读取到你刚才设置的邮箱授权码
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
         run: python main.py
+
