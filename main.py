@@ -1,35 +1,34 @@
 import feedparser
-import requests
+import smtplib
 import os
-import datetime
+from email.mime.text import MIMEText
+from email.header import Header
 
-# 1. 设置数据源 (这里使用 Hacker News 的免费 RSS 订阅源)
+# 1. 抓取资讯
 rss_url = "https://news.ycombinator.com/rss"
 feed = feedparser.parse(rss_url)
 
-# 2. 整理排版新闻内容
-content = "## 🌍 每日全球科技资讯推送\n\n"
-for entry in feed.entries[:15]: # 我们只抓取前 15 条最新新闻
-    content += f"- [{entry.title}]({entry.link})\n"
+content = "🌍 每日全球科技资讯推送\n\n"
+for entry in feed.entries[:15]:
+    content += f"- {entry.title}\n  链接: {entry.link}\n\n"
 
-# 3. 将内容推送到 GitHub Issues
-repo_name = os.environ.get("GITHUB_REPOSITORY")
-github_token = os.environ.get("GITHUB_TOKEN")
-api_url = f"https://api.github.com/repos/{repo_name}/issues"
+# 2. 邮件配置
+sender = 'goeric0703@gmail.com'
+receiver = 'goeric0703@gmail.com'
+password = os.environ.get("EMAIL_PASSWORD") # 从 GitHub Secrets 读取
+subject = '今日科技资讯日报'
 
-headers = {
-    "Authorization": f"token {github_token}",
-    "Accept": "application/vnd.github.v3+json"
-}
-data = {
-    "title": f"科技资讯日报 - {datetime.date.today()}",
-    "body": content
-}
+# 3. 构造邮件格式
+message = MIMEText(content, 'plain', 'utf-8')
+message['From'] = sender
+message['To'] = receiver
+message['Subject'] = Header(subject, 'utf-8')
 
-# 发送请求
-response = requests.post(api_url, headers=headers, json=data)
-
-if response.status_code == 201:
-    print("🎉 资讯推送成功！请去 Issues 页面查看。")
-else:
-    print(f"❌ 推送失败，错误信息：{response.text}")
+try:
+    # Gmail 的 SMTP 服务器和端口
+    smtp_obj = smtplib.SMTP_SSL('smtp.gmail.com', 465)
+    smtp_obj.login(sender, password)
+    smtp_obj.sendmail(sender, [receiver], message.as_string())
+    print("🎉 邮件发送成功！")
+except Exception as e:
+    print(f"❌ 发送失败，原因: {e}")
